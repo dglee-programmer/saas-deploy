@@ -49,18 +49,20 @@ export async function issueBillingKeyAction(authKey: string, customerKey: string
   const { billingKey } = result;
 
   // 3. DB에 구독 정보 저장 (Admin Client 사용 - RLS 우회)
-  const now = new Date();
-  const nextMonth = new Date();
-  nextMonth.setMonth(now.getMonth() + 1);
+  // 시간과 관계없이 날짜만 반영된 KST 기준 정확히 한 달 뒤 자정 문자열을 명시적으로 생성 (예: 2024-05-20T00:00:00+09:00)
+  const nowUtc = new Date();
+  const kstNow = new Date(nowUtc.getTime() + 9 * 60 * 60 * 1000);
+  kstNow.setMonth(kstNow.getMonth() + 1); // 다음 달
+  const nextBillingDateKstStr = `${kstNow.getFullYear()}-${String(kstNow.getMonth() + 1).padStart(2, '0')}-${String(kstNow.getDate()).padStart(2, '0')}T00:00:00+09:00`;
 
   const { error: subError } = await adminSupabase.from('subscriptions').insert({
     user_id: user.id,
     billing_key: billingKey,
     customer_key: customerKey,
     status: 'active',
-    current_period_start: now.toISOString(),
-    current_period_end: nextMonth.toISOString(),
-    next_billing_date: nextMonth.toISOString(),
+    current_period_start: nowUtc.toISOString(),
+    current_period_end: nextBillingDateKstStr,
+    next_billing_date: nextBillingDateKstStr,
     amount: 5000,
   });
 
@@ -69,12 +71,13 @@ export async function issueBillingKeyAction(authKey: string, customerKey: string
     throw new Error("구독 생성 중 오류가 발생했습니다.");
   }
 
-  // 4. 첫 결제 실행 (빌링키 발급 시점에 첫 결제를 수행하는 것이 일반적)
+  // 4. 첫 결제 실행 (빌링키 발급 시점에 첫 결제를 바로 실행)
   try {
     await chargeBillingAction(user.id);
   } catch (chargeError) {
     console.error("첫 결제 실패 (빌링키는 발급됨):", chargeError);
-    // 첫 결제 실패 시 정책에 따라 처리 (여기서는 일단 보류하거나 에러 반환)
+    // 향후 정책: 첫 결제가 실패하면 구독 status를 'expired' 또는 'payment_failed' 처리 고려.
+    // 본 실습에서는 우선 구독은 생성시키지만 로그에 오류를 남깁니다.
   }
 
   // 5. 유저 정보 업데이트
@@ -137,14 +140,15 @@ export async function chargeBillingAction(userId: string) {
     throw new Error(result.message || "정기 결제 승인 실패");
   }
 
-  // 4. 성공 시 다음 결제일 갱신 및 로그 기록
-  const nextBilling = new Date(sub.next_billing_date);
-  nextBilling.setMonth(nextBilling.getMonth() + 1);
+  // 4. 성공 시 다음 결제일 KST 갱신 및 로그 기록
+  const oldKstDate = new Date(new Date(sub.next_billing_date).getTime() + 9 * 60 * 60 * 1000);
+  oldKstDate.setMonth(oldKstDate.getMonth() + 1);
+  const nextBillingDateKstStr = `${oldKstDate.getFullYear()}-${String(oldKstDate.getMonth() + 1).padStart(2, '0')}-${String(oldKstDate.getDate()).padStart(2, '0')}T00:00:00+09:00`;
 
   await adminSupabase.from('subscriptions').update({
     current_period_start: sub.next_billing_date,
-    current_period_end: nextBilling.toISOString(),
-    next_billing_date: nextBilling.toISOString(),
+    current_period_end: nextBillingDateKstStr,
+    next_billing_date: nextBillingDateKstStr,
     updated_at: new Date().toISOString()
   }).eq('id', sub.id);
 
@@ -172,6 +176,7 @@ export async function cancelSubscriptionAction() {
     .from('subscriptions')
     .update({ 
       cancel_at_period_end: true,
+      billing_key: 'CANCELED', // 사용자가 허가한 권장 방식: 빌링키를 무효 더미(Dummy) 값으로 파기하여 재사용 방지
       updated_at: new Date().toISOString()
     })
     .eq('user_id', user.id)
@@ -228,4 +233,53 @@ export async function updatePaymentStatusAction(orderId: string, status: 'SUCCES
     fail_reason: failReason || null,
     updated_at: new Date().toISOString()
   }).eq('order_id', orderId);
+}
+
+/**
+ * 4. 배치 결제 처리 (Cron Job 에서 호출)
+ */
+export async function processBatchChargeAction() {
+  const adminSupabase = await createAdminClient();
+  
+  // KST 상관없이 next_billing_date 자체가 T00:00:00+09:00 형식으로 저장되어 있으므로,
+  // 현재 시간(UTC) 기준으로 과거이거나 지금인 것들을 모두 가져옵니다 (지연 발생 대비 lte 사용).
+  const nowUtc = new Date();
+  
+  const { data: subs, error } = await adminSupabase
+    .from('subscriptions')
+    .select('user_id')
+    .eq('status', 'active')
+    .eq('cancel_at_period_end', false)
+    .lte('next_billing_date', nowUtc.toISOString());
+
+  if (error) {
+    console.error("배치 결제 대상 조회 실패:", error);
+    return { success: false, error: error.message };
+  }
+
+  if (!subs || subs.length === 0) {
+    return { success: true, message: "결제 대상이 없습니다.", count: 0 };
+  }
+
+  let successCount = 0;
+  let failCount = 0;
+
+  // 모든 빌링키에 대해 결제 함수 실행 (시간과 관계없이 오늘 결제해야 하는 빌링키)
+  for (const sub of subs) {
+    try {
+      await chargeBillingAction(sub.user_id);
+      successCount++;
+    } catch (e) {
+      console.error(`user_id ${sub.user_id} 정기 결제 실패:`, e);
+      failCount++;
+    }
+  }
+
+  return { 
+    success: true, 
+    message: "배치 결제 처리 완료", 
+    total: subs.length, 
+    successCount, 
+    failCount 
+  };
 }

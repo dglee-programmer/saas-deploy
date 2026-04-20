@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/Button';
 import { PaymentWidget } from './_components/PaymentWidget';
 import { getMySubscriptionAction, cancelSubscriptionAction } from '@/app/actions/billing.actions';
 
+import { CancelSubscriptionDialog } from './_components/CancelSubscriptionDialog';
+
 export default async function BillingPage() {
   const user = await getUserSession();
   
@@ -96,25 +98,17 @@ export default async function BillingPage() {
                       <div className="space-y-1">
                         <p className="text-sm font-bold text-on-error-container">해지 예약됨</p>
                         <p className="text-xs text-on-error-container/70">
-                          {new Date(subscription.current_period_end).toLocaleDateString()} 이후 구독이 종료됩니다.
+                          {new Date(subscription.current_period_end).toLocaleDateString()} 이후 구독이 자동 해지됩니다.
                         </p>
                       </div>
                     </div>
                   ) : (
-                    <form action={cancelSubscriptionAction}>
-                      <Button
-                        variant="ghost"
-                        size="md"
-                        className="w-full text-error hover:bg-error/5 border border-error/10"
-                        type="submit"
-                        leftIcon="cancel"
-                      >
-                        구독 해지하기
-                      </Button>
+                    <div>
+                      <CancelSubscriptionDialog currentPeriodEnd={subscription.current_period_end} />
                       <p className="text-[10px] text-center text-outline mt-3">
                         해지하셔도 남은 기간 동안 프리미엄 혜택은 유지됩니다.
                       </p>
-                    </form>
+                    </div>
                   )}
                 </div>
               </div>
