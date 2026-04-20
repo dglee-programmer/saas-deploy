@@ -1,4 +1,5 @@
 import React from 'react';
+import type { Metadata } from 'next';
 import { Header } from './_components/Header';
 import { getDashboardData } from '@/app/actions/note.actions';
 import Link from 'next/link';
@@ -6,6 +7,10 @@ import { redirect } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { cn } from '@/lib/utils';
+
+export const metadata: Metadata = {
+  title: "내 대시보드",
+};
 import { Sidebar } from './_components/Sidebar';
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {

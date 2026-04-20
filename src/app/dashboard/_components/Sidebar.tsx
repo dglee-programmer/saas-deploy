@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { createNewNoteAction } from '@/app/actions/note.actions';
 import { logoutAction } from '@/app/actions/auth.actions';
 import { getFoldersAction, createFolderAction } from '@/app/actions/folder.actions';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Icon } from '@/components/ui/Icon';
@@ -15,20 +15,11 @@ interface Folder {
   name: string;
 }
 
-export function Sidebar({ isPremium = false }: { isPremium?: boolean }) {
+export function Sidebar({ isPremium = false, folders = [] }: { isPremium?: boolean, folders?: Folder[] }) {
   const pathname = usePathname();
-  const [folders, setFolders] = useState<Folder[]>([]);
+  const router = useRouter();
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
-
-  const fetchFolders = async () => {
-    const data = await getFoldersAction();
-    setFolders(data);
-  };
-
-  useEffect(() => {
-    fetchFolders();
-  }, []);
 
   const handleCreateFolderToggle = () => {
     setIsCreatingFolder(true);
@@ -42,7 +33,7 @@ export function Sidebar({ isPremium = false }: { isPremium?: boolean }) {
         await createFolderAction(newFolderName.trim());
         setIsCreatingFolder(false);
         setNewFolderName('');
-        await fetchFolders(); // Refresh list immediately
+        router.refresh(); // Refresh layout data
       } catch (error: any) {
         alert(`폴더 생성 중 오류가 발생했습니다: ${error.message || error}`);
       }

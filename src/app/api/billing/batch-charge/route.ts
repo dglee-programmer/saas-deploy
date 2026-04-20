@@ -6,8 +6,8 @@ export async function GET(request: Request) {
   // 로컬 테스트를 위해 잠시 주석 처리할 수 있지만, 운영 시에는 필수입니다.
   const authHeader = request.headers.get('authorization');
   
-  // Vercel Cron Job 인증 (CRON_SECRET 활용)
-  if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

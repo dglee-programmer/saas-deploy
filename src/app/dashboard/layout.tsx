@@ -1,6 +1,7 @@
 import React from 'react';
 import { Sidebar } from './_components/Sidebar';
 import { getDashboardData } from '@/app/actions/note.actions';
+import { getFoldersAction } from '@/app/actions/folder.actions';
 import { redirect } from 'next/navigation';
 
 export default async function DashboardLayout({
@@ -9,10 +10,11 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const { isPremium } = await getDashboardData();
+  const folders = await getFoldersAction();
   
   return (
     <div className="min-h-screen bg-background text-on-surface font-body flex">
-      <Sidebar isPremium={isPremium} />
+      <Sidebar isPremium={isPremium} folders={folders} />
       <div className="flex-1 flex flex-col ml-64">
         {children}
       </div>

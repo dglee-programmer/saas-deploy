@@ -12,7 +12,7 @@ describe('PaymentWidget Component', () => {
 
   it('renders the payment button', () => {
     render(<PaymentWidget amount={5000} orderId="test-order-123" orderName="프리미엄 요금제" />);
-    const payButton = screen.getByRole('button', { name: /결제하기/i });
+    const payButton = screen.getByRole('button', { name: /결제 카드 등록하기/i });
     expect(payButton).toBeDefined();
   });
 });

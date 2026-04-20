@@ -1,6 +1,16 @@
 import Link from 'next/link';
+import type { Metadata } from 'next';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
+
+export const metadata: Metadata = {
+  title: "생각의 속도로 포착하는 하이엔드 메모",
+  description: "흩어진 정보를 지혜로 바꾸는 프리미엄 디지털 원장. anynote와 함께 당신만의 지식 아키텍처를 구축하세요.",
+  openGraph: {
+    title: "생각의 속도로 포착하는 하이엔드 메모 | anynote",
+    description: "지식 전문가를 위한 프리미엄 클라우드 메모 서비스. 흩어진 정보를 지혜로 전환하세요.",
+  }
+};
 
 export default async function LandingPage() {
   return (

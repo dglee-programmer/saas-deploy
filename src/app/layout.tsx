@@ -4,7 +4,10 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'),
-  title: "anynote | 지식 전문가를 위한 아키텍처 큐레이터",
+  title: {
+    default: "anynote | 지식 전문가를 위한 아키텍처 큐레이터",
+    template: "%s | anynote"
+  },
   description: "당신의 디지털 정신을 위한 아키텍처 큐레이터. 고성능 워크스페이스를 통해 메모를 손쉽게 정리하고 검색하며 동기화하세요.",
   openGraph: {
     title: "anynote | 지식 전문가를 위한 아키텍처 큐레이터",

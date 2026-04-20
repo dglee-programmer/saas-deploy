@@ -1,5 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { confirmPaymentAction } from '../billing.actions';
+import { issueBillingKeyAction } from '../billing.actions';
+import { revalidatePath } from 'next/cache';
+
+// Mock next/cache
+vi.mock('next/cache', () => ({
+  revalidatePath: vi.fn(),
+}));
 
 // Mock Supabase
 vi.mock('@/infrastructure/config/supabase/server', () => ({
@@ -7,7 +12,23 @@ vi.mock('@/infrastructure/config/supabase/server', () => ({
     auth: {
       getUser: vi.fn(() => Promise.resolve({ data: { user: { id: 'user-1' } } })),
     },
+  })),
+  createAdminClient: vi.fn(() => ({
     from: vi.fn(() => ({
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: vi.fn(() => Promise.resolve({ data: null })),
+            single: vi.fn(() => Promise.resolve({ data: { id: 'plan-1', price: 5000 }, error: null })),
+          })),
+        })),
+        maybeSingle: vi.fn(() => Promise.resolve({ data: null })),
+      })),
+      insert: vi.fn(() => ({
+        select: vi.fn(() => ({
+          single: vi.fn(() => Promise.resolve({ data: { id: 'sub-1' }, error: null })),
+        })),
+      })),
       update: vi.fn(() => ({
         eq: vi.fn(() => Promise.resolve({ error: null })),
       })),
@@ -18,23 +39,23 @@ vi.mock('@/infrastructure/config/supabase/server', () => ({
 // Mock fetch
 global.fetch = vi.fn();
 
-describe('confirmPaymentAction', () => {
+describe('issueBillingKeyAction', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should successfully confirm payment and update user tier', async () => {
+  it('should successfully issue billing key and create subscription', async () => {
     // Mock Toss API success response
     (global.fetch as any).mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({ status: 'DONE' }),
+      json: () => Promise.resolve({ billingKey: 'b-key-123', status: 'DONE' }),
     });
 
-    const result = await confirmPaymentAction('p-key-123', 'order-456', '5000');
+    const result = await issueBillingKeyAction('auth-key-123', 'cust-key-456');
     
     expect(result.success).toBe(true);
     expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining('api.tosspayments.com'),
+      expect.stringContaining('billing/authorizations/issue'),
       expect.any(Object)
     );
   });
@@ -43,10 +64,10 @@ describe('confirmPaymentAction', () => {
     // Mock Toss API error response
     (global.fetch as any).mockResolvedValue({
       ok: false,
-      json: () => Promise.resolve({ message: '결제 실패 상세 사유' }),
+      json: () => Promise.resolve({ message: '빌링키 발급 실패' }),
     });
 
-    await expect(confirmPaymentAction('fail-key', 'order-fail', '5000'))
-      .rejects.toThrow('결제 실패 상세 사유');
+    await expect(issueBillingKeyAction('fail-key', 'cust-fail'))
+      .rejects.toThrow('빌링키 발급 실패');
   });
 });
