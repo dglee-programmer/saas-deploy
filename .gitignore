@@ -46,7 +46,10 @@ next-env.d.ts
 # design
 design/
 
-supabase/
+/supabase/.temp/
+/supabase/.branches/
+/supabase/storage/
+
 
 .vscode/
 
