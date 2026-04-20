@@ -38,7 +38,7 @@ export async function signInAction(formData: FormData) {
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
-    return { error: error.message };
+    return { success: false, message: error.message };
   }
 
   redirect('/dashboard');
@@ -58,7 +58,7 @@ export async function signUpAction(formData: FormData) {
   });
 
   if (error) {
-    return { error: error.message };
+    return { success: false, message: error.message };
   }
 
   // If Supabase is configured to auto-confirm or if a session is returned immediately
@@ -67,7 +67,7 @@ export async function signUpAction(formData: FormData) {
   }
 
   // If email confirmation is required
-  return { success: true };
+  return { success: true, message: '가입 확인 메일이 발송되었습니다. 메일함을 확인해 주세요.' };
 }
 
 export async function ensureUserProfile(user: any) {

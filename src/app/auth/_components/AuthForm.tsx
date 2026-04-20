@@ -1,5 +1,7 @@
 'use client';
 
+import React, { useState } from 'react';
+
 import { signInAction, signUpAction } from '@/app/actions/auth.actions';
 import { Icon } from '@/components/ui/Icon';
 import { Button } from '@/components/ui/Button';
@@ -18,12 +20,12 @@ export default function AuthForm() {
     const formData = new FormData(e.currentTarget);
     const action = isLogin ? signInAction : signUpAction;
     
-    const result = await action(formData);
+    const result = await action(formData) as { success?: boolean; message?: string } | undefined;
     
-    if (result && !result.success) {
-      setMessage(result.message);
-    } else if (result && result.success) {
-      setMessage(result.message);
+    if (result && result.success === false) {
+      setMessage(result.message || null);
+    } else if (result && result.success === true) {
+      setMessage(result.message || null);
       if (!isLogin) setIsLogin(true); // 가입 성공 시 로그인으로 탭 전환
     }
     

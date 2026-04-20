@@ -47,3 +47,7 @@ next-env.d.ts
 design/
 
 supabase/
+
+.vscode/
+
+*.log

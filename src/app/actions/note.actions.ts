@@ -9,6 +9,8 @@ import { UpdateNoteUseCase } from '@/core/application/use-cases/note/UpdateNoteU
 import { redirect } from 'next/navigation';
 import { ensureUserProfile, getUserProfile } from '@/app/actions/auth.actions';
 
+import { Note } from '@/core/domain/entities/Note';
+
 async function ensurePremium() {
   const profile = await getUserProfile();
   if (!profile || profile.subscription_tier !== 'premium') {
@@ -30,22 +32,22 @@ async function getNoteUseCases() {
   };
 }
 
-export async function getDashboardData(query: string = '') {
+export async function getDashboardData(query: string = ''): Promise<{ notes: any[], user?: any, profile?: any, isPremium?: boolean }> {
   const { getRecent, supabase } = await getNoteUseCases();
   const noteRepository = new SupabaseNoteRepository(supabase);
   
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
-    return { notes: [], user: null };
+    return { notes: [] as any[], user: null };
   }
 
   // Get User Profile (Includes subscription tier)
   const profile = await getUserProfile();
   if (!profile) {
-    return { notes: [], profile: null, isPremium: false };
+    return { notes: [] as any[], profile: null, isPremium: false };
   }
 
-  let notes = [];
+  let notes: Note[] = [];
   const isPremium = profile.subscription_tier === 'premium';
   
   if (isPremium) {

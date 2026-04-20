@@ -183,7 +183,6 @@ export async function cancelSubscriptionAction() {
   }
 
   revalidatePath('/dashboard/billing');
-  return { success: true };
 }
 
 /**

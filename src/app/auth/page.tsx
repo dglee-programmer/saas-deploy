@@ -99,19 +99,19 @@ export default function AuthPage() {
           </div>
 
           {/* Error Message Display */}
-          {response?.error && (
+          {(response as any)?.success === false && (
             <div className="p-4 bg-error-container text-on-error-container rounded-xl text-sm font-medium flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
               <span className="material-symbols-outlined text-lg">error</span>
-              {response.error}
+              {(response as any).message}
             </div>
           )}
 
           {/* Success Message for Sign Up */}
-          {response?.success && (
+          {(response as any)?.success === true && (
             <div className="p-4 bg-tertiary-container/10 border border-tertiary/20 text-tertiary rounded-xl text-sm font-medium flex flex-col gap-2">
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-lg">check_circle</span>
-                <span>회원가입 요청이 성공했습니다!</span>
+                <span>{(response as any).message || '가입 요청이 성공했습니다!'}</span>
               </div>
               <p className="text-xs text-on-surface-variant font-normal pl-7">
                 입력하신 이메일로 <strong>인증 메일</strong>을 보냈습니다. 메일함(또는 스팸함)을 확인하여 링크를 클릭한 후 로그인해 주세요.
