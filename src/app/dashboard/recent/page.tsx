@@ -3,6 +3,7 @@ import { Header } from '../_components/Header';
 import { getDashboardData } from '@/app/actions/note.actions';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { generateNoteUrl } from '@/lib/utils';
 
 export default async function RecentNotesPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q } = await searchParams;
@@ -29,11 +30,16 @@ export default async function RecentNotesPage({ searchParams }: { searchParams: 
 
         <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {notes.length > 0 ? (
-            notes.map((note) => (
+            notes.map((note) => {
+              const plainText = note.content ? note.content.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' ').trim() : '';
+              const imgMatch = note.content ? note.content.match(/<img[^>]+src="([^">]+)"/) : null;
+              const thumbnailUrl = imgMatch ? imgMatch[1] : null;
+
+              return (
               <Link 
                 key={note.id} 
-                href={`/notes/${note.id}`}
-                className="group relative bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant/10 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 flex flex-col h-48"
+                href={generateNoteUrl(note.id, note.title)}
+                className="group relative bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant/10 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 flex flex-col h-56 outline-none cursor-pointer"
               >
                 <div className="flex justify-between items-start mb-4">
                   <div className="p-2 rounded-lg bg-primary/5 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
@@ -41,18 +47,32 @@ export default async function RecentNotesPage({ searchParams }: { searchParams: 
                   </div>
                   <span className="text-[10px] font-bold text-outline group-hover:text-primary transition-colors">방금 전</span>
                 </div>
-                <h3 className="font-headline font-bold text-lg text-on-surface mb-2 line-clamp-1 group-hover:text-primary transition-colors">
-                  {note.title || '제목 없는 메모'}
-                </h3>
-                <p className="text-on-surface-variant text-sm line-clamp-2 font-body leading-relaxed flex-grow">
-                  {note.content || '내용이 없습니다.'}
-                </p>
-                <div className="mt-4 pt-4 border-t border-outline-variant/10 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                
+                <div className="flex gap-3 flex-grow min-h-0">
+                  <div className="flex-1 flex flex-col min-w-0">
+                    <h3 className="font-headline font-bold text-lg text-on-surface mb-2 line-clamp-1 group-hover:text-primary transition-colors">
+                      {note.title || '제목 없는 메모'}
+                    </h3>
+                    <p className="text-on-surface-variant text-sm line-clamp-2 font-body leading-relaxed flex-grow break-all overflow-hidden text-ellipsis">
+                      {plainText || '내용이 없습니다.'}
+                    </p>
+                  </div>
+                  
+                  {thumbnailUrl && (
+                    <div className="w-16 h-16 flex-shrink-0 rounded-xl overflow-hidden border border-outline-variant/10 shadow-sm bg-surface-container-low mt-1">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={thumbnailUrl} alt="첨부 이미지 썸네일" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-4 pt-4 border-t border-outline-variant/10 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
                   <span className="text-[10px] font-black uppercase tracking-widest text-primary">자세히 보기</span>
                   <span className="material-symbols-outlined text-[14px] text-primary">arrow_forward</span>
                 </div>
               </Link>
-            ))
+              );
+            })
           ) : (
             <div className="col-span-full py-20 flex flex-col items-center justify-center text-center space-y-4 bg-surface-container-low/50 rounded-3xl border-2 border-dashed border-outline-variant/20">
               <div className="w-16 h-16 rounded-2xl bg-surface-container-high flex items-center justify-center">

@@ -8,4 +8,5 @@ export interface NoteRepository {
   create(note: Note): Promise<void>;
   update(note: Note): Promise<void>;
   delete(id: string): Promise<void>;
+  countByUserId(userId: string): Promise<number>;
 }

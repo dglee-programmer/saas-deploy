@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
-import { cn } from '@/lib/utils';
+import { cn, generateNoteUrl } from '@/lib/utils';
 
 export const metadata: Metadata = {
   title: "내 대시보드",
@@ -25,6 +25,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
   return (
     <div className="flex flex-col">
+      <Sidebar 
+        isPremium={isPremium} 
+        folders={profile.folders || []} 
+        noteCount={notes.length}
+        storageUsed={profile.storage_used || 0}
+      />
       <Header />
       
       <section className="px-8 pb-20 max-w-6xl mx-auto">
@@ -40,21 +46,23 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
         {/* Bento Layout Content */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start relative">
-          {!isPremium && (
-            <div className="absolute inset-0 z-20 bg-surface/40 backdrop-blur-[2px] rounded-[40px] flex items-center justify-center p-6">
-              <div className="bg-white dark:bg-slate-900 p-12 rounded-[40px] shadow-2xl border border-outline-variant/10 text-center space-y-8 max-w-xl animate-in fade-in zoom-in duration-500">
-                <div className="w-24 h-24 bg-primary/10 rounded-3xl flex items-center justify-center text-primary mx-auto">
-                  <Icon name="lock" size={56} filled />
+          {/* Conditional Limit Overlay (PM approach: only block when over limit) */}
+          {!isPremium && (notes.length >= 30 || (profile.storage_used || 0) >= 10 * 1024 * 1024) && (
+            <div className="absolute inset-0 z-20 bg-surface/60 backdrop-blur-[4px] rounded-[40px] flex items-center justify-center p-6">
+              <div className="bg-white dark:bg-slate-900 p-12 rounded-[40px] shadow-2xl border border-primary/20 text-center space-y-8 max-w-xl animate-in fade-in zoom-in duration-500">
+                <div className="w-24 h-24 bg-error-container/10 rounded-3xl flex items-center justify-center text-error mx-auto">
+                  <Icon name="warning" size={56} filled />
                 </div>
                 <div className="space-y-3">
-                  <h2 className="font-headline text-3xl font-bold text-on-surface">기능이 제한되었습니다</h2>
+                  <h2 className="font-headline text-3xl font-bold text-on-surface">무료 등급 한도 초과</h2>
                   <p className="text-on-surface-variant leading-relaxed">
-                    프리미엄 멤버십을 구독하시면 무제한 메모 작성, 스마트 AI 검색 등 <span className="text-primary font-bold">anynote</span>의 강력한 모든 기능을 자유롭게 이용하실 수 있습니다.
+                    현재 메모 수 또는 저장 용량이 무료 등급 한도를 초과했습니다.<br/>
+                    계속해서 아이디어를 확장하시려면 <span className="text-primary font-bold">anynote 프리미엄</span>으로 업그레이드하세요.
                   </p>
                 </div>
                 <div className="pt-4">
                   <Button variant="primary" size="lg" className="px-12 py-7 shadow-xl shadow-primary/20 text-lg" href="/dashboard/billing">
-                    지금 구독하고 바로 시작하기
+                    프리미엄 요금제 보기
                   </Button>
                 </div>
               </div>
@@ -62,7 +70,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           )}
 
           {/* Recent Memos Container */}
-          <div className={cn("md:col-span-8 space-y-6", !isPremium && "opacity-40 grayscale-[0.5] pointer-events-none")}>
+          <div className="md:col-span-8 space-y-6">
             <div className="flex items-center justify-between mb-2 px-2">
               <h3 className="font-manrope text-xl font-bold">최근 메모</h3>
               <Button variant="text" size="sm" href="/dashboard/recent" className="font-semibold">모두 보기</Button>
@@ -71,31 +79,47 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             {/* Memo Cards */}
             <div className="grid grid-cols-1 gap-4">
               {notes.length > 0 ? (
-                notes.map((note) => (
-                  <div key={note.id} className="group bg-surface-container-lowest p-6 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.04)] border border-outline-variant/5 hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300">
-                    <div className="flex justify-between items-center mb-4">
-                      <div className="flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
-                        <span className="text-[10px] font-black tracking-widest uppercase text-outline">
-                          {note.tags[0] || '일반 메모'}
-                        </span>
+                notes.map((note) => {
+                  const plainText = note.content ? note.content.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' ').trim() : '';
+                  const imgMatch = note.content ? note.content.match(/<img[^>]+src="([^">]+)"/) : null;
+                  const thumbnailUrl = imgMatch ? imgMatch[1] : null;
+                  
+                  return (
+                    <Link key={note.id} href={generateNoteUrl(note.id, note.title)} className="block outline-none">
+                      <div className="group bg-surface-container-lowest p-6 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.04)] border border-outline-variant/5 hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 cursor-pointer">
+                        <div className="flex justify-between items-center mb-4">
+                          <div className="flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+                            <span className="text-[10px] font-black tracking-widest uppercase text-outline">
+                              {note.tags[0] || '일반 메모'}
+                            </span>
+                          </div>
+                          <span className="text-[10px] font-bold text-outline-variant/70 bg-surface-container-low px-2 py-1 rounded-md">
+                            {new Date(note.updatedAt).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })}
+                          </span>
+                        </div>
+                        
+                        <div className="flex gap-4 items-start">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-headline text-xl font-bold mb-2 text-on-surface group-hover:text-primary transition-colors line-clamp-1">
+                              {note.title || '제목 없는 메모'}
+                            </h4>
+                            <p className="text-on-surface-variant/80 text-sm leading-relaxed line-clamp-2 font-body break-all overflow-hidden text-ellipsis min-h-[40px]">
+                              {plainText || '기록된 내용이 없습니다.'}
+                            </p>
+                          </div>
+                          
+                          {thumbnailUrl && (
+                            <div className="w-16 h-16 flex-shrink-0 rounded-xl overflow-hidden border border-outline-variant/10 shadow-sm bg-surface-container-low mt-1">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={thumbnailUrl} alt="첨부 이미지 썸네일" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <span className="text-[10px] font-bold text-outline-variant/70 bg-surface-container-low px-2 py-1 rounded-md">
-                        {new Date(note.updatedAt).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })}
-                      </span>
-                    </div>
-                    
-                    <Link href={`/notes/${note.id}`} className="block group/title">
-                      <h4 className="font-headline text-xl font-bold mb-3 text-on-surface group-hover/title:text-primary transition-colors line-clamp-1">
-                        {note.title || '제목 없는 메모'}
-                      </h4>
                     </Link>
-                    
-                    <p className="text-on-surface-variant/80 text-sm leading-relaxed line-clamp-2 font-body h-10">
-                      {note.content || '기록된 내용이 없습니다.'}
-                    </p>
-                  </div>
-                ))
+                  );
+                })
               ) : (
                 <div className="text-center py-20 bg-surface-container-lowest rounded-xl border-dashed border-2 border-outline-variant/30">
                   <p className="text-on-surface-variant">표시할 메모가 없습니다.</p>
@@ -105,21 +129,30 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           </div>
 
           {/* Secondary Sidebar Stats/Quick Actions */}
-          <div className={cn("md:col-span-4 space-y-6", !isPremium && "opacity-40 grayscale-[0.5] pointer-events-none")}>
+          <div className="md:col-span-4 space-y-6">
             {/* Statistics Panel */}
             <div className="bg-surface-container-low p-6 rounded-xl border-none">
               <h3 className="font-manrope font-bold text-lg mb-6">큐레이션 통계</h3>
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-on-surface-variant">사용 중인 용량</span>
-                  <span className="text-sm font-bold text-primary">0%</span>
+                  <span className="text-sm font-bold text-primary">
+                    {Math.round(((profile.storage_used || 0) / (10 * 1024 * 1024)) * 100)}%
+                  </span>
                 </div>
                 <div className="w-full bg-outline-variant/30 h-1.5 rounded-full overflow-hidden">
-                  <div className="bg-primary h-full w-[0%] rounded-full"></div>
+                  <div 
+                    className={cn("h-full rounded-full transition-all duration-500", 
+                      (profile.storage_used || 0) > 8 * 1024 * 1024 ? "bg-error" : "bg-primary")}
+                    style={{ width: `${Math.min(100, Math.round(((profile.storage_used || 0) / (10 * 1024 * 1024)) * 100))}%` }}
+                  ></div>
                 </div>
                 <div className="grid grid-cols-2 gap-4 mt-6">
                   <div className="bg-white/50 p-3 rounded-lg text-center">
-                    <div className="text-2xl font-black text-on-surface">{notes.length}</div>
+                    <div className="text-2xl font-black text-on-surface">
+                      {notes.length}
+                      {!isPremium && <span className="text-xs text-on-surface-variant ml-1">/ 30</span>}
+                    </div>
                     <div className="text-[10px] uppercase font-bold tracking-widest text-on-surface-variant/60">전체 메모</div>
                   </div>
                   <div className="bg-white/50 p-3 rounded-lg text-center">

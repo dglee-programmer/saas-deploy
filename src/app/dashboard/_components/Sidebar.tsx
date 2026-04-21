@@ -15,7 +15,17 @@ interface Folder {
   name: string;
 }
 
-export function Sidebar({ isPremium = false, folders = [] }: { isPremium?: boolean, folders?: Folder[] }) {
+export function Sidebar({ 
+  isPremium = false, 
+  folders = [], 
+  noteCount = 0,
+  storageUsed = 0 
+}: { 
+  isPremium?: boolean, 
+  folders?: Folder[],
+  noteCount?: number,
+  storageUsed?: number
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
@@ -69,11 +79,11 @@ export function Sidebar({ isPremium = false, folders = [] }: { isPremium?: boole
       <form action={createNewNoteAction}>
         <Button 
           variant="primary" 
-          className={cn("w-full mb-6 py-6", !isPremium && "opacity-60 cursor-not-allowed")}
-          leftIcon={isPremium ? "add" : "lock"}
-          disabled={!isPremium}
+          className={cn("w-full mb-6 py-6", (!isPremium && noteCount >= 30) && "opacity-60 cursor-not-allowed")}
+          leftIcon={(isPremium || noteCount < 30) ? "add" : "lock"}
+          disabled={!isPremium && noteCount >= 30}
         >
-          {isPremium ? '새 메모 작성' : '구독 후 작성 가능'}
+          {(isPremium || noteCount < 30) ? '새 메모 작성' : '한도 초과 (구독 필요)'}
         </Button>
       </form>
 
@@ -98,11 +108,11 @@ export function Sidebar({ isPremium = false, folders = [] }: { isPremium?: boole
               variant="ghost" 
               size="icon" 
               className="w-5 h-5 rounded-full" 
-              onClick={isPremium ? handleCreateFolderToggle : undefined}
-              title={isPremium ? "새 폴더 만들기" : "구독이 필요합니다"}
-              disabled={!isPremium}
+              onClick={(isPremium || noteCount < 30) ? handleCreateFolderToggle : undefined}
+              title={(isPremium || noteCount < 30) ? "새 폴더 만들기" : "메모/폴더 한도에 도달했습니다"}
+              disabled={!isPremium && noteCount >= 30}
             >
-              <Icon name={isPremium ? "add" : "lock"} size={14} />
+              <Icon name={(isPremium || noteCount < 30) ? "add" : "lock"} size={14} />
             </Button>
           </div>
           <div className="space-y-1 mt-1">

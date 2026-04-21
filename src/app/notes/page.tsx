@@ -2,14 +2,17 @@ import React from 'react';
 import type { Metadata } from 'next';
 import { getNoteAction } from '@/app/actions/note.actions';
 import { Editor } from './_components/Editor';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 
 interface PageProps {
-  params: Promise<{ id: string }>;
+  searchParams: Promise<{ id?: string }>;
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { id } = await params;
+export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
+  const { id } = await searchParams;
+  
+  if (!id) return { title: 'Not Found' };
+  
   const note = await getNoteAction(id);
 
   if (!note) {
@@ -28,20 +31,17 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export default async function NotePage({ params }: PageProps) {
-  const { id } = await params;
+export default async function NotePage({ searchParams }: PageProps) {
+  const { id } = await searchParams;
+  
+  if (!id) {
+    redirect('/dashboard');
+  }
+
   const note = await getNoteAction(id);
 
   if (!note) {
-    // For demo/design verification, if note doesn't exist in Supabase (which is likely now),
-    // we return a mock note so the user can see the UI.
-    const mockNote = {
-      id,
-      title: '분기별 아키텍처 리뷰',
-      content: '엔지니어링 팀의 합의에 따라 다음 단계에서는 마이크로 프론트엔드 아키텍처로 전환할 것을 제안합니다. 관련 우려 사항으로는...',
-      wordCount: 15
-    };
-    return <Editor initialNote={mockNote} />;
+    notFound();
   }
 
   return (

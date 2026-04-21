@@ -139,7 +139,7 @@ export default async function LandingPage() {
             </div>
             <ul className="space-y-4 mb-10 flex-grow">
               <li className="flex items-center gap-3 text-sm text-on-surface-variant">
-                <span className="material-symbols-outlined text-primary text-lg">check_circle</span> 100개 개인 메모
+                <span className="material-symbols-outlined text-primary text-lg">check_circle</span> 30개 개인 메모
               </li>
               <li className="flex items-center gap-3 text-sm text-on-surface-variant">
                 <span className="material-symbols-outlined text-primary text-lg">check_circle</span> 2개 기기 동기화

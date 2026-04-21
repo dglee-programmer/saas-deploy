@@ -11,12 +11,22 @@ import { ensureUserProfile, getUserProfile } from '@/app/actions/auth.actions';
 
 import { Note } from '@/core/domain/entities/Note';
 
-async function ensurePremium() {
-  const profile = await getUserProfile();
-  if (!profile || profile.subscription_tier !== 'premium') {
-    redirect('/dashboard/billing');
+async function ensureOwnership(noteId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/auth');
+  
+  const { data: note } = await supabase
+    .from('notes')
+    .select('user_id')
+    .eq('id', noteId)
+    .maybeSingle();
+    
+  if (!note) return; // 메모가 이미 삭제되었거나 없는 경우 권한 에러를 내지 않음
+
+  if (note.user_id !== user.id) {
+    throw new Error('Unauthorized');
   }
-  return profile;
 }
 
 async function getNoteUseCases() {
@@ -50,12 +60,10 @@ export async function getDashboardData(query: string = ''): Promise<{ notes: any
   let notes: Note[] = [];
   const isPremium = profile.subscription_tier === 'premium';
   
-  if (isPremium) {
-    if (query) {
-      notes = await noteRepository.searchByUserId(profile.id, query);
-    } else {
-      notes = await getRecent.execute({ userId: profile.id, limit: 12 });
-    }
+  if (query) {
+    notes = await noteRepository.searchByUserId(profile.id, query);
+  } else {
+    notes = await getRecent.execute({ userId: profile.id, limit: 12 });
   }
   
   // Convert Class instances to Plain Objects for Client Components
@@ -77,6 +85,8 @@ export async function getDashboardData(query: string = ''): Promise<{ notes: any
   };
 }
 
+import { generateNoteUrl } from '@/lib/utils';
+
 export async function createNewNoteAction() {
   const { create, supabase } = await getNoteUseCases();
   const { data: { user } } = await supabase.auth.getUser();
@@ -85,8 +95,19 @@ export async function createNewNoteAction() {
     redirect('/auth');
   }
 
-  // Ensure user is premium
-  const profile = await ensurePremium();
+  const profile = await getUserProfile();
+  if (!profile) redirect('/auth');
+
+  // Check limits for standard users
+  if (profile.subscription_tier !== 'premium') {
+    const { getRecent, supabase: noteSupabase } = await getNoteUseCases();
+    const noteRepository = new SupabaseNoteRepository(noteSupabase);
+    const count = await noteRepository.countByUserId(profile.id);
+    
+    if (count >= 30) {
+      redirect('/dashboard/billing'); // Limit reached
+    }
+  }
 
   const note = await create.execute({
     userId: profile.id,
@@ -94,25 +115,35 @@ export async function createNewNoteAction() {
     content: ''
   });
 
-  redirect(`/notes/${note.id}`);
+  redirect(generateNoteUrl(note.id, note.title));
 }
 
+import { revalidatePath } from 'next/cache';
+
 export async function deleteNoteAction(id: string) {
-  await ensurePremium();
-  const { supabase } = await getNoteUseCases();
-  const { error } = await supabase.from('notes').delete().eq('id', id);
-  if (error) throw error;
-  redirect('/dashboard');
+  try {
+    await ensureOwnership(id);
+    const { supabase } = await getNoteUseCases();
+    const { error } = await supabase.from('notes').delete().eq('id', id);
+    if (error) throw error;
+    
+    revalidatePath('/', 'layout');
+    
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
 }
 
 export async function updateNoteAction(dto: { id: string; title?: string; content?: string }) {
-  await ensurePremium();
+  await ensureOwnership(dto.id);
   const { update } = await getNoteUseCases();
   await update.execute(dto);
+  revalidatePath('/', 'layout');
 }
 
 export async function getNoteAction(id: string) {
-  await ensurePremium();
+  await ensureOwnership(id);
   const { getById } = await getNoteUseCases();
   return await getById.execute({ id });
 }

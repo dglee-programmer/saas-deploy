@@ -96,6 +96,16 @@ export class SupabaseNoteRepository implements NoteRepository {
     if (error) throw error;
   }
 
+  async countByUserId(userId: string): Promise<number> {
+    const { count, error } = await this.supabase
+      .from('notes')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId);
+
+    if (error) throw error;
+    return count || 0;
+  }
+
   private mapToEntity(data: any): Note {
     return new Note({
       id: data.id,
