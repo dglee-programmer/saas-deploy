@@ -21,6 +21,7 @@ export class CreateNoteUseCase {
       content: dto.content,
       wordCount: this.calculateWordCount(dto.content),
       tags: [],
+      isPinned: false,
       isShared: false,
       createdAt: now,
       updatedAt: now,

@@ -50,7 +50,8 @@ export default async function NotePage({ searchParams }: PageProps) {
         id: note.id,
         title: note.title,
         content: note.content || '',
-        wordCount: note.wordCount
+        wordCount: note.wordCount,
+        tags: note.tags
       }} 
     />
   );

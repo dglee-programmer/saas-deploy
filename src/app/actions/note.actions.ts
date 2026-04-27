@@ -2,6 +2,7 @@
 
 import { createClient } from '@/infrastructure/config/supabase/server';
 import { SupabaseNoteRepository } from '@/infrastructure/repositories/SupabaseNoteRepository';
+import { SupabaseTagRepository } from '@/infrastructure/repositories/SupabaseTagRepository';
 import { GetRecentNotesUseCase } from '@/core/application/use-cases/note/GetRecentNotesUseCase';
 import { CreateNoteUseCase } from '@/core/application/use-cases/note/CreateNoteUseCase';
 import { GetNoteUseCase } from '@/core/application/use-cases/note/GetNoteUseCase';
@@ -42,25 +43,33 @@ async function getNoteUseCases() {
   };
 }
 
-export async function getDashboardData(query: string = ''): Promise<{ notes: any[], user?: any, profile?: any, isPremium?: boolean }> {
+export async function getDashboardData(query: string = '', tagId?: string): Promise<{ notes: any[], user?: any, profile?: any, isPremium?: boolean, tags: any[] }> {
   const { getRecent, supabase } = await getNoteUseCases();
   const noteRepository = new SupabaseNoteRepository(supabase);
+  const tagRepository = new SupabaseTagRepository(supabase);
   
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
-    return { notes: [] as any[], user: null };
+    return { notes: [] as any[], user: null, tags: [] };
   }
 
   // Get User Profile (Includes subscription tier)
   const profile = await getUserProfile();
   if (!profile) {
-    return { notes: [] as any[], profile: null, isPremium: false };
+    return { notes: [] as any[], profile: null, isPremium: false, tags: [] };
   }
+
+  // Get User Tags
+  const tags = await tagRepository.findByUserId(profile.id);
 
   let notes: Note[] = [];
   const isPremium = profile.subscription_tier === 'premium';
   
-  if (query) {
+  if (tagId) {
+    const { getNotesByTag } = await import('@/core/application/use-cases/tag/GetNotesByTagUseCase');
+    const getNotesByTagUseCase = new getNotesByTag(tagRepository, noteRepository);
+    notes = await getNotesByTagUseCase.execute({ tagId });
+  } else if (query) {
     notes = await noteRepository.searchByUserId(profile.id, query);
   } else {
     notes = await getRecent.execute({ userId: profile.id, limit: 12 });
@@ -76,12 +85,14 @@ export async function getDashboardData(query: string = ''): Promise<{ notes: any
       content: n.content,
       wordCount: n.wordCount,
       tags: n.tags,
+      isPinned: n.isPinned,
       isShared: n.isShared,
       createdAt: n.createdAt.toISOString(),
       updatedAt: n.updatedAt.toISOString()
     })), 
     profile,
-    isPremium
+    isPremium,
+    tags: tags.map(t => ({ id: t.id, name: t.name, color: t.color }))
   };
 }
 
@@ -146,4 +157,22 @@ export async function getNoteAction(id: string) {
   await ensureOwnership(id);
   const { getById } = await getNoteUseCases();
   return await getById.execute({ id });
+}
+
+export async function togglePinNoteAction(id: string) {
+  try {
+    await ensureOwnership(id);
+    const { getById, supabase } = await getNoteUseCases();
+    const noteRepository = new SupabaseNoteRepository(supabase);
+    const note = await getById.execute({ id });
+    if (!note) throw new Error('Note not found');
+
+    note.togglePin();
+    await noteRepository.update(note);
+
+    revalidatePath('/', 'layout');
+    return { success: true, isPinned: note.isPinned };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
 }

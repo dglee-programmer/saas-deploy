@@ -16,7 +16,7 @@ describe('UpdateNoteUseCase', () => {
   });
 
   it('should update an existing note', async () => {
-    const existingNote = new Note({ id: '1', userId: 'user-1', title: 'Old Title', content: 'Old Content', wordCount: 2, tags: [], isShared: false, createdAt: new Date(), updatedAt: new Date() });
+    const existingNote = new Note({ id: '1', userId: 'user-1', title: 'Old Title', content: 'Old Content', wordCount: 2, tags: [], isPinned: false, isShared: false, createdAt: new Date(), updatedAt: new Date() });
     (noteRepository.findById as any).mockResolvedValue(existingNote);
 
     const dto = {

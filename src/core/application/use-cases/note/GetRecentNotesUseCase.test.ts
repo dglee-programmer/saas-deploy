@@ -16,8 +16,8 @@ describe('GetRecentNotesUseCase', () => {
 
   it('should return recent notes for a user', async () => {
     const mockNotes = [
-      new Note({ id: '1', userId: 'user-1', title: 'Note 1', content: '...', wordCount: 0, tags: [], isShared: false, createdAt: new Date(), updatedAt: new Date() }),
-      new Note({ id: '2', userId: 'user-1', title: 'Note 2', content: '...', wordCount: 0, tags: [], isShared: false, createdAt: new Date(), updatedAt: new Date() }),
+      new Note({ id: '1', userId: 'user-1', title: 'Note 1', content: '...', wordCount: 0, tags: [], isPinned: false, isShared: false, createdAt: new Date(), updatedAt: new Date() }),
+      new Note({ id: '2', userId: 'user-1', title: 'Note 2', content: '...', wordCount: 0, tags: [], isPinned: false, isShared: false, createdAt: new Date(), updatedAt: new Date() }),
     ];
     (noteRepository.findRecentByUserId as any).mockResolvedValue(mockNotes);
 

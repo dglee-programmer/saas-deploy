@@ -5,6 +5,7 @@ import { updateNoteAction, deleteNoteAction } from '@/app/actions/note.actions';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Icon } from '@/components/ui/Icon';
 import { Button } from '@/components/ui/Button';
+import { TagInput } from './TagInput';
 import { useRouter } from 'next/navigation';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -16,6 +17,7 @@ interface Note {
   title: string;
   content: string;
   wordCount: number;
+  tags: string[];
 }
 
 export function Editor({ initialNote }: { initialNote: Note }) {
@@ -128,11 +130,11 @@ export function Editor({ initialNote }: { initialNote: Note }) {
         title: note.title,
         content: note.content
       });
-      // Just keep user on the page
+      // 저장 성공 시 대시보드로 이동
+      router.push('/dashboard');
     } catch (error) {
       alert('저장 중 오류가 발생했습니다.');
-    } finally {
-      setIsSaving(false);
+      setIsSaving(false); // 에러 발생 시에만 저장 중 상태를 해제하여, 이동 중에는 로딩 상태가 유지되게 함
     }
   };
 
@@ -267,6 +269,8 @@ export function Editor({ initialNote }: { initialNote: Note }) {
               onChange={(e) => setNote({ ...note, title: e.target.value })}
             />
           </div>
+
+          <TagInput noteId={note.id} initialTags={note.tags} />
           
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2 bg-surface-container-low px-3 py-1.5 rounded-full border border-outline-variant/10">

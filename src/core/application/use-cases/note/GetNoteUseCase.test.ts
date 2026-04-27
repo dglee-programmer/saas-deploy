@@ -15,7 +15,7 @@ describe('GetNoteUseCase', () => {
   });
 
   it('should return a note by its id', async () => {
-    const mockNote = new Note({ id: '1', userId: 'user-1', title: 'Note 1', content: '...', wordCount: 0, tags: [], isShared: false, createdAt: new Date(), updatedAt: new Date() });
+    const mockNote = new Note({ id: '1', userId: 'user-1', title: 'Note 1', content: '...', wordCount: 0, tags: [], isPinned: false, isShared: false, createdAt: new Date(), updatedAt: new Date() });
     (noteRepository.findById as any).mockResolvedValue(mockNote);
 
     const result = await useCase.execute({ id: '1' });

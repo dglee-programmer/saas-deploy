@@ -43,7 +43,7 @@ export function Header() {
               onChange={handleSearch}
             />
           </div>
-          <div className="flex items-center gap-3 border-l border-outline-variant/30 pl-6">
+          {/* <div className="flex items-center gap-3 border-l border-outline-variant/30 pl-6">
             <div className="relative group cursor-pointer">
               <div className="w-9 h-9 rounded-full bg-secondary-container p-0.5 ring-2 ring-transparent group-hover:ring-primary/20 transition-all overflow-hidden">
                 <img
@@ -53,8 +53,8 @@ export function Header() {
                 />
               </div>
 
-              {/* Profile Dropdown Mockup UI */}
-              {/* <div className="absolute right-0 top-12 w-48 bg-white rounded-xl shadow-2xl border border-outline-variant/10 p-2 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-all translate-y-2 group-hover:translate-y-0 z-50">
+              {/* Profile Dropdown Mockup UI 
+              <div className="absolute right-0 top-12 w-48 bg-white rounded-xl shadow-2xl border border-outline-variant/10 p-2 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-all translate-y-2 group-hover:translate-y-0 z-50">
                 <div className="px-3 py-2 border-b border-outline-variant/5 mb-2">
                   <p className="text-xs font-bold text-on-surface">Adrian 계정</p>
                   <p className="text-[10px] text-on-surface-variant">adrian@example.com</p>
@@ -67,9 +67,9 @@ export function Header() {
                     로그아웃
                   </Button>
                 </form>
-              </div> */}
+              </div> 
             </div>
-          </div>
+          </div> */}
         </div>
       </div>
     </header>

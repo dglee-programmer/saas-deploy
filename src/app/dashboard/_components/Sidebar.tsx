@@ -15,14 +15,22 @@ interface Folder {
   name: string;
 }
 
+interface Tag {
+  id: string;
+  name: string;
+  color: string;
+}
+
 export function Sidebar({ 
   isPremium = false, 
   folders = [], 
+  tags = [],
   noteCount = 0,
   storageUsed = 0 
 }: { 
   isPremium?: boolean, 
   folders?: Folder[],
+  tags?: Tag[],
   noteCount?: number,
   storageUsed?: number
 }) {
@@ -162,6 +170,36 @@ export function Sidebar({
               ))
             ) : (
               <div className="px-8 py-2 text-xs text-slate-400 italic">폴더가 없습니다</div>
+            )}
+          </div>
+        </div>
+
+        <div className="pt-2">
+          <div className="flex items-center justify-between px-4 py-2 text-slate-400 text-[10px] font-bold uppercase tracking-widest">
+            <span>태그</span>
+          </div>
+          <div className="space-y-1 mt-1">
+            {tags.length > 0 ? (
+              tags.map(tag => (
+                <Button
+                  key={tag.id}
+                  href={`/dashboard?tag=${tag.id}`}
+                  variant="ghost"
+                  className={cn(
+                    "w-full justify-start h-9 px-4",
+                    pathname.includes(`tag=${tag.id}`) ? "text-primary font-bold bg-primary/5" : "text-on-surface-variant"
+                  )}
+                  leftIcon="sell"
+                  leftIconFilled={pathname.includes(`tag=${tag.id}`)}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className={cn("w-1.5 h-1.5 rounded-full", `bg-${tag.color === 'default' ? 'slate' : tag.color}-500`)}></span>
+                    {tag.name}
+                  </div>
+                </Button>
+              ))
+            ) : (
+              <div className="px-8 py-2 text-xs text-slate-400 italic">태그가 없습니다</div>
             )}
           </div>
         </div>

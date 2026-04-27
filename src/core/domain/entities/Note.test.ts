@@ -11,6 +11,7 @@ describe('Note Entity', () => {
       content: 'Hello World',
       wordCount: 2,
       tags: ['test'],
+      isPinned: false,
       isShared: false,
       createdAt: now,
       updatedAt: now
@@ -30,6 +31,7 @@ describe('Note Entity', () => {
       content: '',
       wordCount: 0,
       tags: [],
+      isPinned: false,
       isShared: false,
       createdAt: new Date(),
       updatedAt: new Date()
@@ -49,6 +51,7 @@ describe('Note Entity', () => {
       content: 'Initial',
       wordCount: 1,
       tags: [],
+      isPinned: false,
       isShared: false,
       createdAt: new Date(),
       updatedAt: new Date()
